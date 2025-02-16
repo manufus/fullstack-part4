@@ -60,7 +60,7 @@ test('blog identifiers are id', async () => {
   assert(!existeId.includes(false))
 })
 
-test.only('new blog post is created', async () => {
+test('new blog post is created', async () => {
   const newBlog = {
     title: 'POST test',
     author: 'Author 4',
@@ -79,6 +79,26 @@ test.only('new blog post is created', async () => {
   const match = await Blog.find({ title: 'POST test' })
   console.log(match, '!!!!', match[0].id)
 
+  await api.delete(`/api/blogs/${match[0].id}`).expect(204)
+})
+
+test.only('likes missing, adding 0 instead', async () => {
+  const newBlog = {
+    title: 'Likes defaulting 0 test',
+    author: 'Author 4',
+    url: 'qwerty.4',
+    // likes: 33,
+  }
+  const blogSent = !newBlog.likes ? { ...newBlog, likes: 0 } : newBlog
+  console.log(blogSent)
+
+  await api
+    .post('/api/blogs')
+    .send(blogSent)
+    .expect(201)
+    .expect('Content-type', /application\/json/)
+
+  const match = await Blog.find({ title: 'Likes defaulting 0 test' })
   await api.delete(`/api/blogs/${match[0].id}`).expect(204)
 })
 
