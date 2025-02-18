@@ -94,7 +94,7 @@ test('likes missing, adding 0 instead', async () => {
   assert.strictEqual(response.body.likes, 0)
 })
 
-test.only('title or url missing returns 400 Bad Request', async () => {
+test('title or url missing returns 400 Bad Request', async () => {
   const newBlogNoTitleNoUrl = {
     author: 'Bad Request',
     likes: 33,
@@ -120,6 +120,19 @@ test.only('title or url missing returns 400 Bad Request', async () => {
 
   // Test missing title
   await api.post('/api/blogs').send(newBlogNoTitle).expect(400)
+})
+
+test.only('deleting a blog', async () => {
+  const response = await api.get('/api/blogs')
+  const blogsStart = response.body
+  const blogToDelete = blogsStart[0]
+
+  await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204)
+
+  const responseAfter = await api.get('/api/blogs')
+  const blogsEnd = responseAfter.body
+
+  assert.strictEqual(blogsEnd.length, blogsStart.length - 1)
 })
 
 after(async () => {
