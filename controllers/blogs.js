@@ -1,14 +1,12 @@
 const notesRouter = require('express').Router()
-const { response } = require('../app')
 const Blog = require('../models/blog')
 
-notesRouter.get('/', (request, response) => {
-  Blog.find({}).then((blogs) => {
-    response.json(blogs)
-  })
+notesRouter.get('/', async (request, response) => {
+  const blogs = await Blog.find({})
+  response.json(blogs)
 })
 
-notesRouter.post('/', (request, response, next) => {
+notesRouter.post('/', async (request, response) => {
   const body = request.body
 
   if (!body.title || !body.url) {
@@ -22,20 +20,13 @@ notesRouter.post('/', (request, response, next) => {
     likes: body.likes || 0,
   })
 
-  blog
-    .save()
-    .then((result) => {
-      response.status(201).json(result)
-    })
-    .catch((error) => next(error))
+  const savedBlog = await blog.save()
+  response.status(201).json(savedBlog)
 })
 
-notesRouter.delete('/:id', (request, response, next) => {
-  Blog.findByIdAndDelete(request.params.id)
-    .then(() => {
-      response.status(204).end()
-    })
-    .catch((error) => next(error))
+notesRouter.delete('/:id', async (request, response) => {
+  await Blog.findByIdAndDelete(request.params.id)
+  response.status(204).end()
 })
 
 module.exports = notesRouter

@@ -4,8 +4,6 @@ const assert = require('node:assert')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
-const blog = require('../models/blog')
-const { title } = require('node:process')
 
 const api = supertest(app)
 
@@ -32,12 +30,10 @@ const initialBlogs = [
 
 beforeEach(async () => {
   await Blog.deleteMany({})
-  let blogObject = new Blog(initialBlogs[0])
-  await blogObject.save()
-  blogObject = new Blog(initialBlogs[1])
-  await blogObject.save()
-  blogObject = new Blog(initialBlogs[2])
-  await blogObject.save()
+
+  const blogObjects = initialBlogs.map((blog) => new Blog(blog))
+  const promiseArray = blogObjects.map((blog) => blog.save())
+  await Promise.all(promiseArray)
 })
 
 test('retrieving blogs as json', async () => {
