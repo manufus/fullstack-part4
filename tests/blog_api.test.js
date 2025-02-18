@@ -82,24 +82,48 @@ test('new blog post is created', async () => {
   await api.delete(`/api/blogs/${match[0].id}`).expect(204)
 })
 
-test.only('likes missing, adding 0 instead', async () => {
+test('likes missing, adding 0 instead', async () => {
   const newBlog = {
     title: 'Likes defaulting 0 test',
     author: 'Author 4',
     url: 'qwerty.4',
-    // likes: 33,
   }
-  const blogSent = !newBlog.likes ? { ...newBlog, likes: 0 } : newBlog
-  console.log(blogSent)
 
-  await api
+  const response = await api
     .post('/api/blogs')
-    .send(blogSent)
+    .send(newBlog)
     .expect(201)
     .expect('Content-type', /application\/json/)
 
-  const match = await Blog.find({ title: 'Likes defaulting 0 test' })
-  await api.delete(`/api/blogs/${match[0].id}`).expect(204)
+  assert.strictEqual(response.body.likes, 0)
+})
+
+test.only('title or url missing returns 400 Bad Request', async () => {
+  const newBlogNoTitleNoUrl = {
+    author: 'Bad Request',
+    likes: 33,
+  }
+
+  const newBlogNoUrl = {
+    title: 'Test Title',
+    author: 'Bad Request',
+    likes: 33,
+  }
+
+  const newBlogNoTitle = {
+    author: 'Bad Request',
+    url: 'test.url',
+    likes: 33,
+  }
+
+  // Test missing both title and url
+  await api.post('/api/blogs').send(newBlogNoTitleNoUrl).expect(400)
+
+  // Test missing url
+  await api.post('/api/blogs').send(newBlogNoUrl).expect(400)
+
+  // Test missing title
+  await api.post('/api/blogs').send(newBlogNoTitle).expect(400)
 })
 
 after(async () => {
