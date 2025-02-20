@@ -122,7 +122,7 @@ test('title or url missing returns 400 Bad Request', async () => {
   await api.post('/api/blogs').send(newBlogNoTitle).expect(400)
 })
 
-test.only('deleting a blog', async () => {
+test('deleting a blog', async () => {
   const response = await api.get('/api/blogs')
   const blogsStart = response.body
   const blogToDelete = blogsStart[0]
@@ -133,6 +133,25 @@ test.only('deleting a blog', async () => {
   const blogsEnd = responseAfter.body
 
   assert.strictEqual(blogsEnd.length, blogsStart.length - 1)
+})
+
+test.only('updating likes of a blog', async () => {
+  const response = await api.get('/api/blogs')
+  const blogsStart = response.body
+  const blogToUpdate = blogsStart[0]
+
+  const blogLikesUpdated = { ...blogToUpdate, likes: blogToUpdate.likes - 33 }
+
+  await api
+    .patch(`/api/blogs/${blogToUpdate.id}`)
+    .send(blogLikesUpdated)
+    .expect(200)
+
+  const responseAfter = await api.get('/api/blogs')
+  const blogsAfter = responseAfter.body
+  const blogAfter = blogsAfter[0]
+
+  assert.strictEqual(blogAfter.likes, blogToUpdate.likes - 33)
 })
 
 after(async () => {

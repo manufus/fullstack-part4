@@ -1,4 +1,5 @@
 const notesRouter = require('express').Router()
+const { request, response } = require('../app')
 const Blog = require('../models/blog')
 
 notesRouter.get('/', async (request, response) => {
@@ -27,6 +28,23 @@ notesRouter.post('/', async (request, response) => {
 notesRouter.delete('/:id', async (request, response) => {
   await Blog.findByIdAndDelete(request.params.id)
   response.status(204).end()
+})
+
+notesRouter.patch('/:id', async (request, response) => {
+  const { id } = request.params
+  const { likes } = request.body
+
+  const updatedBlog = await Blog.findByIdAndUpdate(
+    id,
+    { likes },
+    { new: true, runValidators: true }
+  )
+
+  if (!updatedBlog) {
+    return response.status(404).end()
+  }
+
+  response.json(updatedBlog)
 })
 
 module.exports = notesRouter
