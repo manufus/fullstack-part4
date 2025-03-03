@@ -19,6 +19,7 @@
   "homepage": "https://github.com/manufus/fullstack-part4#readme",
   "description": "",
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
