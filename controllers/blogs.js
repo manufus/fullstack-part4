@@ -1,5 +1,5 @@
 const notesRouter = require('express').Router()
-const { request, response } = require('../app')
+// const { request, response } = require('../app')
 const Blog = require('../models/blog')
 
 notesRouter.get('/', async (request, response) => {
