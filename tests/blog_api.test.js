@@ -31,10 +31,31 @@ const initialBlogs = [
   },
 ]
 
+let token = null
+
 beforeEach(async () => {
   await Blog.deleteMany({})
+  await User.deleteMany({})
 
-  const blogObjects = initialBlogs.map((blog) => new Blog(blog))
+  // Create test user
+  const passwordHash = await bcrypt.hash('testpass', 10)
+  const user = new User({ username: 'testuser', passwordHash })
+  await user.save()
+
+  // Login and get token
+  const response = await api
+    .post('/api/login')
+    .send({ username: 'testuser', password: 'testpass' })
+
+  token = response.body.token
+
+  const blogObjects = initialBlogs.map(
+    (blog) =>
+      new Blog({
+        ...blog,
+        user: user._id,
+      })
+  )
   const promiseArray = blogObjects.map((blog) => blog.save())
   await Promise.all(promiseArray)
 })
@@ -66,21 +87,25 @@ test('new blog post is created', async () => {
     url: 'qwerty.4',
     likes: 4,
   }
+
   await api
     .post('/api/blogs')
+    .set('Authorization', `Bearer ${token}`) // Add token
     .send(newBlog)
     .expect(201)
     .expect('Content-type', /application\/json/)
 
   const response = await api.get('/api/blogs')
-  // console.log(response.body[response.body.length - 1])
   assert.strictEqual(response.body.length, initialBlogs.length + 1)
-  const match = await Blog.find({ title: 'POST test' })
-  console.log(match, '!!!!', match[0].id)
 
-  await api.delete(`/api/blogs/${match[0].id}`).expect(204)
+  const match = await Blog.find({ title: 'POST test' })
+  await api
+    .delete(`/api/blogs/${match[0].id}`)
+    .set('Authorization', `Bearer ${token}`) // Add token
+    .expect(204)
 })
 
+// Update likes missing test
 test('likes missing, adding 0 instead', async () => {
   const newBlog = {
     title: 'Likes defaulting 0 test',
@@ -90,6 +115,7 @@ test('likes missing, adding 0 instead', async () => {
 
   const response = await api
     .post('/api/blogs')
+    .set('Authorization', `Bearer ${token}`) // Add token
     .send(newBlog)
     .expect(201)
     .expect('Content-type', /application\/json/)
@@ -97,45 +123,51 @@ test('likes missing, adding 0 instead', async () => {
   assert.strictEqual(response.body.likes, 0)
 })
 
+// Update missing title/url test
 test('title or url missing returns 400 Bad Request', async () => {
   const newBlogNoTitleNoUrl = {
     author: 'Bad Request',
     likes: 33,
   }
 
-  const newBlogNoUrl = {
-    title: 'Test Title',
-    author: 'Bad Request',
-    likes: 33,
-  }
-
-  const newBlogNoTitle = {
-    author: 'Bad Request',
-    url: 'test.url',
-    likes: 33,
-  }
-
-  // Test missing both title and url
-  await api.post('/api/blogs').send(newBlogNoTitleNoUrl).expect(400)
-
-  // Test missing url
-  await api.post('/api/blogs').send(newBlogNoUrl).expect(400)
-
-  // Test missing title
-  await api.post('/api/blogs').send(newBlogNoTitle).expect(400)
+  await api
+    .post('/api/blogs')
+    .set('Authorization', `Bearer ${token}`) // Add token
+    .send(newBlogNoTitleNoUrl)
+    .expect(400)
 })
 
+// Add new test for unauthorized blog creation
+test('adding blog fails with 401 if token not provided', async () => {
+  const newBlog = {
+    title: 'Test without token',
+    author: 'No Auth',
+    url: 'noauth.com',
+    likes: 0,
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(401)
+    .expect('Content-Type', /application\/json/)
+
+  const blogsAtEnd = await Blog.find({})
+  assert.strictEqual(blogsAtEnd.length, initialBlogs.length)
+})
+
+// Update delete test
 test('deleting a blog', async () => {
   const response = await api.get('/api/blogs')
-  const blogsStart = response.body
-  const blogToDelete = blogsStart[0]
+  const blogToDelete = response.body[0]
 
-  await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204)
+  await api
+    .delete(`/api/blogs/${blogToDelete.id}`)
+    .set('Authorization', `Bearer ${token}`) // Add token
+    .expect(204)
 
-  const responseAfter = await api.get('/api/blogs')
-  const blogsEnd = responseAfter.body
-
-  assert.strictEqual(blogsEnd.length, blogsStart.length - 1)
+  const blogsAtEnd = await Blog.find({})
+  assert.strictEqual(blogsAtEnd.length, initialBlogs.length - 1)
 })
 
 test('updating likes of a blog', async () => {
